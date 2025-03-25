@@ -1,0 +1,95 @@
+{
+  "Palier": [],
+  "Cuisine/Séjour": [
+    {
+      "titre": "Débarrasser / nettoyer",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-26T08:14:44.667293",
+      "date_fin": "2025-03-26T20:14:44.667293"
+    },
+    {
+      "titre": "Bâcher",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-26T08:14:44.667293",
+      "date_fin": "2025-03-26T20:14:44.667293"
+    },
+    {
+      "titre": "Terminer peinture",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-27T08:14:44.667293",
+      "date_fin": "2025-03-27T20:14:44.667293"
+    },
+    {
+      "titre": "LM - Acheter nouvelles poignées",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-28T08:14:44.667293",
+      "date_fin": "2025-03-28T20:14:44.667293"
+    },
+    {
+      "titre": "LM - Programmer échange PDT",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-28T08:14:44.667293",
+      "date_fin": "2025-03-28T20:14:44.667293"
+    },
+    {
+      "titre": "LM - Voir reprise hotte",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-28T08:17:02.629582",
+      "date_fin": "2025-03-28T20:17:02.629582"
+    },
+    {
+      "titre": "Programmer artisan cuisine",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-28T08:17:02.629582",
+      "date_fin": "2025-03-28T20:17:02.629582"
+    },
+    {
+      "titre": "Finir murs",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-29T08:17:02.629582",
+      "date_fin": "2025-03-29T20:17:02.629582"
+    },
+    {
+      "titre": "Fond dur et vitrification du parquet",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-29T08:17:02.629582",
+      "date_fin": "2025-03-29T20:17:02.629582"
+    },
+    {
+      "titre": "Plinthes",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-30T08:17:02.629582",
+      "date_fin": "2025-03-30T20:17:02.629582"
+    },
+    {
+      "titre": "Retirer blanc parquet",
+      "statut": "À faire",
+      "priorité": "Moyenne",
+      "durée_estimée": 0.5,
+      "date_début": "2025-03-25T08:14:44.667293",
+      "date_fin": "2025-03-25T20:14:44.667293"
+    }
+  ],
+  "Escalier": [],
+  "Cuisine": []
+}

@@ -34,10 +34,17 @@ STATUS_COLORS = {
 def format_duration(days):
     """Formate la durée en jours ou heures pour l'affichage"""
     if days >= 1:
+        # Pour les durées d'un jour ou plus, afficher en jours avec une décimale
         return f"{days:.1f} jour{'s' if days > 1 else ''}"
     else:
+        # Pour les durées de moins d'un jour, afficher en heures
         hours = days * 8  # Conversion en heures (8 heures = 1 journée de travail)
-        return f"{hours:.1f} heure{'s' if hours > 1 else ''}"
+        # Arrondir à l'entier si proche d'un nombre entier, sinon garder une décimale
+        if abs(hours - round(hours)) < 0.1:
+            hours_display = int(round(hours))
+        else:
+            hours_display = round(hours, 1)
+        return f"{hours_display} heure{'s' if hours_display != 1 else ''}"
 
 def get_color_for_zone(zone):
     """Retourne la couleur associée à une zone"""

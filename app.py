@@ -8,11 +8,30 @@ import os
 import sys
 import time
 
+# Configuration de la page Streamlit - DOIT ÊTRE LA PREMIÈRE COMMANDE STREAMLIT
+st.set_page_config(
+    page_title="Planificateur de Travaux",
+    page_icon="🏠",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 # Ajouter le répertoire courant au path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    import data
+    # Vérifier quel mode de stockage utiliser
+    import config_manager
+    if config_manager.use_sqlite():
+        import db as data
+        # Ces informations seront affichées plus tard dans main()
+        storage_mode = "SQLite (Base de données)"
+        storage_mode_is_sqlite = True
+    else:
+        import data
+        storage_mode = "JSON (Fichier plat)"
+        storage_mode_is_sqlite = False
+        
     import visualisation
     import agenda
     import utils
@@ -20,14 +39,6 @@ except ImportError as e:
     st.error(f"Erreur d'importation: {e}")
     st.info("Assurez-vous d'avoir installé toutes les dépendances nécessaires avec `pip install -r requirements.txt`")
     st.stop()
-
-# Configuration de la page Streamlit
-st.set_page_config(
-    page_title="Planificateur de Travaux",
-    page_icon="🏠",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Ajout des méta-balises pour améliorer l'affichage sur mobile
 st.markdown("""
@@ -169,13 +180,69 @@ def main():
         # Barre latérale avec les sections principales
         st.sidebar.markdown("<h1 style='text-align: center;'>🏠 Planificateur</h1>", unsafe_allow_html=True)
         
+        # Afficher le mode de stockage dans la barre latérale
+        if storage_mode_is_sqlite:
+            st.sidebar.success(f"Mode de stockage: {storage_mode}")
+        else:
+            st.sidebar.info(f"Mode de stockage: {storage_mode}")
+        
         # Menu de navigation
         page = st.sidebar.radio(
             "Navigation",
             ["Tableau de bord", "Liste des travaux", "Agenda", "Rapport", "Gérer les tâches"]
         )
         
-        # Affichage différent selon la page sélectionnée
+        # Section d'administration (cachée par défaut)
+        with st.sidebar.expander("⚙️ Administration"):
+            st.write("Options avancées pour la gestion des données")
+            
+            # Afficher le mode de stockage actuel
+            current_mode = "SQLite" if config_manager.use_sqlite() else "JSON"
+            st.write(f"**Mode actuel:** {current_mode}")
+            
+            # Option pour migrer de JSON vers SQLite
+            if not config_manager.use_sqlite():
+                if st.button("Migrer vers SQLite"):
+                    with st.spinner("Migration en cours..."):
+                        import subprocess
+                        result = subprocess.run(["python3", "migration.py"], capture_output=True, text=True)
+                        if "Migration réussie" in result.stdout:
+                            st.success("Migration vers SQLite réussie! Redémarrage...")
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.error(f"Échec de la migration: {result.stdout}\n{result.stderr}")
+            
+            # Option pour revenir à JSON
+            else:
+                if st.button("Revenir au stockage JSON"):
+                    if st.session_state.get("confirm_json_switch", False):
+                        # Confirmer la conversion
+                        config_manager.set_storage_mode(False)
+                        st.success("Retour au stockage JSON. Redémarrage...")
+                        time.sleep(2)
+                        st.rerun()
+                    else:
+                        st.session_state["confirm_json_switch"] = True
+                        st.warning("⚠️ Attention: Cette opération est réversible mais vos dernières modifications dans SQLite pourraient être perdues. Cliquez à nouveau pour confirmer.")
+            
+            # Option pour réinitialiser les données
+            if st.button("Réinitialiser toutes les données"):
+                if st.session_state.get("confirm_reset", False):
+                    # Confirmer la réinitialisation
+                    if config_manager.use_sqlite():
+                        import db
+                        db.reset_to_empty()
+                    else:
+                        data.reset_to_empty()
+                    st.success("Données réinitialisées avec succès. Redémarrage...")
+                    time.sleep(2)
+                    st.rerun()
+                else:
+                    st.session_state["confirm_reset"] = True
+                    st.warning("⚠️ Attention: Cette opération supprimera toutes vos données! Cliquez à nouveau pour confirmer.")
+        
+        # Afficher différent selon la page sélectionnée
         if page == "Tableau de bord":
             display_dashboard()
         elif page == "Liste des travaux":
@@ -537,8 +604,18 @@ def manage_tasks():
             priority_options = ["Élevée", "Moyenne", "Basse", "Faible"]
             priority = st.selectbox("Priorité", priority_options, index=1)  # Par défaut: Moyenne
             
-            # Durée estimée
-            duration = st.slider("Durée estimée (jours)", min_value=0.5, max_value=10.0, value=1.0, step=0.5)
+            # Choix de l'unité de temps pour la durée estimée
+            time_unit = st.radio("Unité de temps", ["Jours", "Heures"], horizontal=True)
+            
+            # Durée estimée adaptée à l'unité choisie
+            if time_unit == "Jours":
+                duration = st.slider("Durée estimée (jours)", min_value=0.5, max_value=10.0, value=1.0, step=0.5,
+                                   help="Durée estimée en jours de travail")
+            else:  # Heures
+                duration_hours = st.slider("Durée estimée (heures)", min_value=1, max_value=48, value=8, step=1,
+                                         help="Durée estimée en heures de travail")
+                # Convertir les heures en jours pour la base de données (1 jour = 8 heures de travail)
+                duration = round(duration_hours / 8, 2)
             
             # Statut initial
             status_options = ["À faire", "En cours", "En attente", "Terminé"]
@@ -552,9 +629,19 @@ def manage_tasks():
             if not task_title:
                 st.error("Le titre de la tâche ne peut pas être vide.")
             else:
+                # Stockons l'unité de temps choisie dans une variable de session
+                time_unit_for_display = "jours" if time_unit == "Jours" else "heures"
+                display_duration = duration if time_unit == "Jours" else duration_hours
+                
                 success = data.add_task(selected_zone, task_title, priority, duration, status)
                 if success:
-                    st.success(f"✅ Tâche '{task_title}' ajoutée avec succès dans la zone '{selected_zone}'.")
+                    success_message = f"✅ Tâche '{task_title}' ajoutée avec succès dans la zone '{selected_zone}'."
+                    if time_unit == "Heures":
+                        success_message += f" Durée: {duration_hours} heures ({duration} jours)."
+                    else:
+                        success_message += f" Durée: {duration} jours."
+                    
+                    st.success(success_message)
                     # Afficher un bouton pour revenir à la liste des tâches
                     if st.button("Voir la liste des tâches"):
                         st.session_state.page = "Liste des travaux"

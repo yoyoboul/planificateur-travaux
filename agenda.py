@@ -209,62 +209,164 @@ def display_calendar(start_date=None):
     if "calendar_view" not in st.session_state:
         st.session_state.calendar_view = "monthly"
     
-    # Navigation entre les différentes vues
-    col_view1, col_view2, col_view3, col_today = st.columns([1, 1, 1, 1])
+    # Détection de l'appareil mobile (estimation basée sur la session)
+    screen_width = st.session_state.get('_screen_width', 1200)  # Valeur par défaut desktop
+    is_mobile = screen_width < 768  # Considère comme mobile si écran < 768px
     
-    with col_view1:
-        if st.button("📅 Vue mensuelle", key="btn_monthly"):
-            st.session_state.calendar_view = "monthly"
+    # Navigation entre les différentes vues - Adaptation pour mobile
+    if is_mobile:
+        # Version mobile avec menu déroulant et bouton aujourd'hui
+        col_view = st.columns([3, 1])[0]  # Utilisation de la première colonne (plus large)
+        view_options = {
+            "monthly": "📅 Vue mensuelle",
+            "weekly": "📆 Vue hebdomadaire", 
+            "daily": "📆 Vue journalière"
+        }
+        
+        selected_view = col_view.selectbox(
+            "Choisir une vue", 
+            options=list(view_options.keys()),
+            format_func=lambda x: view_options[x],
+            index=list(view_options.keys()).index(st.session_state.calendar_view)
+        )
+        
+        if selected_view != st.session_state.calendar_view:
+            st.session_state.calendar_view = selected_view
             st.rerun()
-    
-    with col_view2:
-        if st.button("📆 Vue hebdomadaire", key="btn_weekly"):
-            st.session_state.calendar_view = "weekly"
-            st.rerun()
-    
-    with col_view3:
-        if st.button("📆 Vue journalière", key="btn_daily"):
-            st.session_state.calendar_view = "daily"
-            st.rerun()
-    
-    with col_today:
-        # Bouton pour revenir à aujourd'hui
-        if st.button("📍 Aujourd'hui", key="btn_today"):
+            
+        # Bouton aujourd'hui en pleine largeur
+        if st.button("📍 Aujourd'hui", key="btn_today_mobile", use_container_width=True):
             st.session_state.calendar_date = datetime.now()
             st.rerun()
+    else:
+        # Version desktop avec boutons
+        col_view1, col_view2, col_view3, col_today = st.columns([1, 1, 1, 1])
+        
+        with col_view1:
+            if st.button("📅 Vue mensuelle", key="btn_monthly"):
+                st.session_state.calendar_view = "monthly"
+                st.rerun()
+        
+        with col_view2:
+            if st.button("📆 Vue hebdomadaire", key="btn_weekly"):
+                st.session_state.calendar_view = "weekly"
+                st.rerun()
+        
+        with col_view3:
+            if st.button("📆 Vue journalière", key="btn_daily"):
+                st.session_state.calendar_view = "daily"
+                st.rerun()
+        
+        with col_today:
+            if st.button("📍 Aujourd'hui", key="btn_today"):
+                st.session_state.calendar_date = datetime.now()
+                st.rerun()
     
-    # Afficher la vue appropriée
+    # Afficher la vue appropriée avec adaptations mobiles
     if st.session_state.calendar_view == "daily":
         display_daily_view(st.session_state.calendar_date)
         
-        # Ajouter des boutons pour naviguer entre les jours
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("⬅️ Jour précédent"):
-                st.session_state.calendar_date = st.session_state.calendar_date - timedelta(days=1)
-                st.rerun()
-        
-        with col2:
-            if st.button("Jour suivant ➡️"):
-                st.session_state.calendar_date = st.session_state.calendar_date + timedelta(days=1)
-                st.rerun()
+        # Ajouter des boutons pour naviguer entre les jours - adaptation mobile
+        if is_mobile:
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("⬅️ Jour précédent", use_container_width=True):
+                    st.session_state.calendar_date = st.session_state.calendar_date - timedelta(days=1)
+                    st.rerun()
+            
+            with col2:
+                if st.button("Jour suivant ➡️", use_container_width=True):
+                    st.session_state.calendar_date = st.session_state.calendar_date + timedelta(days=1)
+                    st.rerun()
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("⬅️ Jour précédent"):
+                    st.session_state.calendar_date = st.session_state.calendar_date - timedelta(days=1)
+                    st.rerun()
+            
+            with col2:
+                if st.button("Jour suivant ➡️"):
+                    st.session_state.calendar_date = st.session_state.calendar_date + timedelta(days=1)
+                    st.rerun()
                 
     elif st.session_state.calendar_view == "weekly":
+        # Adapter la vue hebdomadaire pour le mobile
+        if is_mobile:
+            # Appliquer un style spécifique pour la vue mobile hebdomadaire
+            st.markdown("""
+            <style>
+                /* Réduire la taille des cellules pour la vue hebdomadaire sur mobile */
+                .mobile-week-day {
+                    font-size: 0.8rem !important;
+                    padding: 0.2rem !important;
+                }
+                
+                /* Réduire la hauteur des tâches dans la vue semaine sur mobile */
+                .mobile-week-task {
+                    padding: 2px !important;
+                    margin: 1px 0 !important;
+                    font-size: 0.65rem !important;
+                }
+            </style>
+            """, unsafe_allow_html=True)
+        
         display_weekly_view(st.session_state.calendar_date)
         
-        # Ajouter des boutons pour naviguer entre les semaines
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("⬅️ Semaine précédente"):
-                st.session_state.calendar_date = st.session_state.calendar_date - timedelta(days=7)
-                st.rerun()
-        
-        with col2:
-            if st.button("Semaine suivante ➡️"):
-                st.session_state.calendar_date = st.session_state.calendar_date + timedelta(days=7)
-                st.rerun()
+        # Ajouter des boutons pour naviguer entre les semaines - adaptation mobile
+        if is_mobile:
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("⬅️ Semaine précédente", use_container_width=True):
+                    st.session_state.calendar_date = st.session_state.calendar_date - timedelta(days=7)
+                    st.rerun()
+            
+            with col2:
+                if st.button("Semaine suivante ➡️", use_container_width=True):
+                    st.session_state.calendar_date = st.session_state.calendar_date + timedelta(days=7)
+                    st.rerun()
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("⬅️ Semaine précédente"):
+                    st.session_state.calendar_date = st.session_state.calendar_date - timedelta(days=7)
+                    st.rerun()
+            
+            with col2:
+                if st.button("Semaine suivante ➡️"):
+                    st.session_state.calendar_date = st.session_state.calendar_date + timedelta(days=7)
+                    st.rerun()
                 
     else:  # monthly view (default)
+        # Optimiser la vue mensuelle pour mobile
+        if is_mobile:
+            # Appliquer un style spécifique pour la vue mobile mensuelle
+            st.markdown("""
+            <style>
+                /* Réduire la taille des cellules pour la vue mensuelle sur mobile */
+                [data-testid="stHorizontalBlock"] [data-testid="column"] {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                /* Réduire l'espacement vertical dans le calendrier sur mobile */
+                .mobile-month-day {
+                    font-size: 0.75rem !important;
+                    min-height: 25px !important;
+                    margin-bottom: 2px !important;
+                }
+                
+                /* Réduire la taille des tâches dans la vue mensuelle sur mobile */
+                .mobile-month-task {
+                    padding: 1px !important;
+                    margin: 1px 0 !important;
+                    font-size: 0.6rem !important;
+                }
+            </style>
+            """, unsafe_allow_html=True)
+        
         # Calculer le début et la fin du mois
         first_day = start_date.replace(day=1)
         
@@ -280,26 +382,47 @@ def display_calendar(start_date=None):
         # Créer une grille pour l'affichage du calendrier
         st.write(f"## {start_date.strftime('%B %Y')}")
         
-        # Navigation entre les mois
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("⬅️ Mois précédent"):
-                if start_date.month == 1:
-                    new_date = start_date.replace(year=start_date.year - 1, month=12)
-                else:
-                    new_date = start_date.replace(month=start_date.month - 1)
-                st.session_state.calendar_date = new_date
-                st.rerun()
-        
-        with col2:
-            if st.button("Mois suivant ➡️"):
-                if start_date.month == 12:
-                    new_date = start_date.replace(year=start_date.year + 1, month=1)
-                else:
-                    new_date = start_date.replace(month=start_date.month + 1)
-                st.session_state.calendar_date = new_date
-                st.rerun()
+        # Navigation entre les mois - Adaptation mobile
+        if is_mobile:
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                if st.button("⬅️ Mois précédent", use_container_width=True):
+                    if start_date.month == 1:
+                        new_date = start_date.replace(year=start_date.year - 1, month=12)
+                    else:
+                        new_date = start_date.replace(month=start_date.month - 1)
+                    st.session_state.calendar_date = new_date
+                    st.rerun()
+            
+            with col2:
+                if st.button("Mois suivant ➡️", use_container_width=True):
+                    if start_date.month == 12:
+                        new_date = start_date.replace(year=start_date.year + 1, month=1)
+                    else:
+                        new_date = start_date.replace(month=start_date.month + 1)
+                    st.session_state.calendar_date = new_date
+                    st.rerun()
+        else:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("⬅️ Mois précédent"):
+                    if start_date.month == 1:
+                        new_date = start_date.replace(year=start_date.year - 1, month=12)
+                    else:
+                        new_date = start_date.replace(month=start_date.month - 1)
+                    st.session_state.calendar_date = new_date
+                    st.rerun()
+            
+            with col2:
+                if st.button("Mois suivant ➡️"):
+                    if start_date.month == 12:
+                        new_date = start_date.replace(year=start_date.year + 1, month=1)
+                    else:
+                        new_date = start_date.replace(month=start_date.month + 1)
+                    st.session_state.calendar_date = new_date
+                    st.rerun()
         
         # Obtenir les tâches planifiées
         scheduled_tasks = data.get_scheduled_tasks()
@@ -334,7 +457,11 @@ def display_calendar(start_date=None):
         st.write("### Calendrier")
         cols = st.columns(7)
         for i, day in enumerate(days):
-            cols[i].write(f"**{day}**")
+            # Version plus compacte sur mobile
+            if is_mobile:
+                cols[i].write(f"<span style='font-size:0.8rem;'><b>{day}</b></span>", unsafe_allow_html=True)
+            else:
+                cols[i].write(f"**{day}**")
         
         # Afficher les jours dans une grille
         rows = [all_days[i:i+7] for i in range(0, len(all_days), 7)]
@@ -346,10 +473,14 @@ def display_calendar(start_date=None):
                 is_current_month = day_info["current_month"]
                 is_today = day.date() == datetime.now().date()
                 
-                # Formater la couleur des jours
+                # Formater la couleur des jours - adapté pour mobile
                 date_style = "color: gray;" if not is_current_month else ""
                 if is_today:
-                    date_style += "font-weight: bold; background-color: #e8f0fe; border-radius: 50%; display: inline-block; width: 25px; height: 25px; text-align: center; line-height: 25px;"
+                    if is_mobile:
+                        # Highlight plus compact pour mobile
+                        date_style += "font-weight: bold; background-color: #e8f0fe; border-radius: 50%; display: inline-block; width: 18px; height: 18px; text-align: center; line-height: 18px; font-size: 0.8rem;"
+                    else:
+                        date_style += "font-weight: bold; background-color: #e8f0fe; border-radius: 50%; display: inline-block; width: 25px; height: 25px; text-align: center; line-height: 25px;"
                 
                 # Vérifier s'il y a des tâches planifiées pour cette date
                 day_tasks = []
@@ -358,12 +489,18 @@ def display_calendar(start_date=None):
                         if task["date_début"].date() <= day.date() <= task["date_fin"].date():
                             day_tasks.append(task)
                 
+                # Classe CSS adaptative pour mobile
+                day_class = " mobile-month-day" if is_mobile else ""
+                
                 # Afficher le jour avec son style
-                cols[i].markdown(f"<div style='{date_style}'>{day.day}</div>", unsafe_allow_html=True)
+                cols[i].markdown(f"<div class='{day_class}' style='{date_style}'>{day.day}</div>", unsafe_allow_html=True)
+                
+                # Limiter le nombre de tâches visibles sur mobile
+                visible_tasks_limit = 2 if is_mobile else 3
                 
                 # S'il y a des tâches ce jour-là, les afficher avec un style basé sur le statut/priorité
                 if day_tasks:
-                    for task in day_tasks[:3]:  # Limiter à 3 tâches visibles par jour
+                    for task in day_tasks[:visible_tasks_limit]:  # Limiter à 2 tâches visibles par jour sur mobile
                         # Créer le style basé sur le statut et la priorité
                         task_style = get_task_color_style(task)
                         
@@ -374,37 +511,44 @@ def display_calendar(start_date=None):
                         # Ajouter des icônes pour le statut
                         status_icon = "✅" if task['statut'] == "Terminé" else "🔄" if task['statut'] == "En cours" else "⏱️" if task['statut'] == "En attente" else "📋"
                         
+                        # Adapter la taille du texte sur mobile
+                        task_title_limit = 6 if is_mobile else 10
+                        task_class = " mobile-month-task" if is_mobile else ""
+                        
                         # Créer la div de la tâche avec l'attribut title HTML et icônes
                         task_html = f"""
-                        <div style="{task_style} padding: 3px; margin: 2px 0; border-radius: 3px; color: white; font-size: 0.7em; cursor: pointer;"
+                        <div class="{task_class}" style="{task_style} padding: 3px; margin: 2px 0; border-radius: 3px; color: white; font-size: 0.7em; cursor: pointer;"
                              title="{tooltip_text}">
-                            {status_icon} {task['titre'][:10]}{"..." if len(task['titre']) > 10 else ""}
+                            {status_icon} {task['titre'][:task_title_limit]}{"..." if len(task['titre']) > task_title_limit else ""}
                         </div>
                         """
                         cols[i].markdown(task_html, unsafe_allow_html=True)
                     
-                    if len(day_tasks) > 3:
-                        cols[i].markdown(f"<div style='font-size: 0.7em; text-align: center;'>+{len(day_tasks) - 3} autres</div>", unsafe_allow_html=True)
+                    if len(day_tasks) > visible_tasks_limit:
+                        cols[i].markdown(f"<div style='font-size: 0.6em; text-align: center;'>+{len(day_tasks) - visible_tasks_limit}</div>", unsafe_allow_html=True)
                 
-                # Permettre d'ajouter une tâche en cliquant sur un jour
+                # Permettre d'ajouter une tâche en cliquant sur un jour - adapté pour mobile
                 if is_current_month:
+                    button_cols = cols[i].columns(2)
+                    
                     # Ajouter un bouton pour voir les détails du jour
-                    if cols[i].button("📋", key=f"view_day_{day.day}"):
+                    if button_cols[0].button("📋", key=f"view_day_{day.day}", use_container_width=is_mobile):
                         st.session_state.selected_date = day
                         st.session_state.calendar_view = "daily"
                         st.rerun()
                     
                     # Ajouter une tâche
-                    if cols[i].button("➕", key=f"add_task_{day.day}"):
+                    if button_cols[1].button("➕", key=f"add_task_{day.day}", use_container_width=is_mobile):
                         st.session_state.selected_date = day
                         st.session_state.show_task_scheduler = True
                         st.rerun()
     
     # Mettre à jour la note explicative
-    st.markdown("""
-    > **Note:** Les infobulles simples apparaissent maintenant au survol des tâches.
-    > Pour des détails plus complets, cliquez sur une tâche pour accéder à la vue journalière.
-    """)
+    if not is_mobile:
+        st.markdown("""
+        > **Note:** Les infobulles simples apparaissent maintenant au survol des tâches.
+        > Pour des détails plus complets, cliquez sur une tâche pour accéder à la vue journalière.
+        """)
     
     return None
 

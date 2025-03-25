@@ -29,7 +29,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Styles CSS personnalisés pour l'application
+# Ajout des méta-balises pour améliorer l'affichage sur mobile
+st.markdown("""
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+""", unsafe_allow_html=True)
+
+# Styles CSS personnalisés pour l'application avec optimisation mobile
 st.markdown("""
 <style>
     .main-header {
@@ -38,18 +43,21 @@ st.markdown("""
         text-align: center;
         margin-bottom: 1rem;
     }
+    
     .section-header {
         font-size: 1.8rem;
         color: #333;
         margin-top: 2rem;
         margin-bottom: 1rem;
     }
+    
     .card {
         border-radius: 5px;
         padding: 1rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 1rem;
     }
+    
     .zone-title {
         font-weight: bold;
         color: white;
@@ -58,22 +66,101 @@ st.markdown("""
         display: inline-block;
         margin-bottom: 10px;
     }
+    
     .stProgressBar {
         height: 10px;
     }
+    
     .stProgress > div > div {
         background-color: #4CAF50;
     }
+    
     .task-list {
         margin-top: 15px;
     }
+    
     .footer {
         margin-top: 3rem;
         text-align: center;
         font-size: 0.8rem;
         color: #666;
     }
+    
+    /* Optimisations pour les appareils mobiles */
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-header {
+            font-size: 1.4rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .card {
+            padding: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        /* Réduire la taille des boutons sur mobile */
+        button {
+            font-size: 0.9rem !important;
+            padding: 0.3rem 0.5rem !important;
+        }
+        
+        /* Ajuster les colonnes pour mobile */
+        .mobile-full-width {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Ajuster l'espacement */
+        .row-widget.stButton {
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Améliorations pour la sidebar sur mobile */
+        [data-testid="stSidebar"] {
+            width: 100%;
+            min-width: 0;
+        }
+        
+        /* Rendre les sélecteurs plus grands pour les doigts */
+        .stSelectbox, .stDateInput {
+            min-height: 40px;
+        }
+        
+        [data-baseweb="select"] {
+            min-height: 40px;
+        }
+    }
+    
+    /* Classe utilitaire pour détecter et adapter le contenu sur mobile */
+    .mobile-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
 </style>
+""", unsafe_allow_html=True)
+
+# Script JavaScript pour détecter les appareils mobiles et ajuster l'interface
+st.markdown("""
+<script>
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+        // Ajouter une classe 'mobile' au body pour cibler avec CSS
+        document.body.classList.add('mobile-view');
+        
+        // Réduire les marges et paddings pour optimiser l'espace
+        document.querySelectorAll('.stApp').forEach(el => {
+            el.style.padding = '0.5rem';
+        });
+    }
+</script>
 """, unsafe_allow_html=True)
 
 def main():
@@ -182,8 +269,43 @@ def display_dashboard():
             st.rerun()
         return
     
-    # Afficher les métriques principales
-    col1, col2, col3, col4 = st.columns(4)
+    # Détection des appareils mobiles (à utiliser pour adapter la mise en page)
+    # Streamlit ne peut pas directement détecter les appareils mobiles côté serveur,
+    # mais nous pouvons utiliser la largeur d'écran comme proxy
+    screen_width = st.session_state.get('_screen_width', 1200)  # Valeur par défaut desktop
+    is_mobile = screen_width < 768  # Considère comme mobile si écran < 768px
+    
+    # Ajoutons un widget caché qui va tenter de mesurer la largeur d'écran via JavaScript
+    st.markdown("""
+    <div style="display:none" id="screen_width_detector">
+        <script>
+            // Envoi de la largeur d'écran à Streamlit
+            const screenWidth = window.innerWidth;
+            const widthElement = document.getElementById('screen_width_detector');
+            widthElement.textContent = screenWidth;
+            
+            // Créer une fonction pour mettre à jour la largeur lors du redimensionnement
+            function updateWidth() {
+                const newWidth = window.innerWidth;
+                widthElement.textContent = newWidth;
+            }
+            
+            // Écouter les événements de redimensionnement
+            window.addEventListener('resize', updateWidth);
+        </script>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Afficher les métriques principales - Style adaptatif selon le type d'appareil
+    if is_mobile:
+        # Disposition verticale pour mobile
+        col1 = st.container()
+        col2 = st.container()
+        col3 = st.container()
+        col4 = st.container()
+    else:
+        # Disposition horizontale pour desktop
+        col1, col2, col3, col4 = st.columns(4)
     
     # Nombre total de tâches
     total_tasks = len(all_tasks)
@@ -208,32 +330,52 @@ def display_dashboard():
     # Afficher les tâches d'aujourd'hui
     display_todays_tasks()
     
-    # Afficher les graphiques de visualisation dans deux colonnes
-    col1, col2 = st.columns(2)
-    
-    with col1:
+    # Afficher les graphiques de visualisation - adaptatif selon l'appareil
+    if is_mobile:
+        # Sur mobile, afficher les graphiques en pleine largeur, un au-dessus de l'autre
         st.subheader("Répartition par zone")
         tasks_by_zone = data.count_tasks_by_zone()
         fig = visualisation.create_task_overview_chart(tasks_by_zone)
         st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
+        
         st.subheader("Statut des tâches")
         fig = visualisation.create_task_status_chart(tasks_by_status)
         st.plotly_chart(fig, use_container_width=True)
-    
-    # Afficher le graphique de priorité et le burndown chart
-    col1, col2 = st.columns(2)
-    
-    with col1:
+        
         st.subheader("Répartition par priorité")
         fig = visualisation.create_priority_chart(all_tasks)
         st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
+        
         st.subheader("Progression dans le temps")
         fig = visualisation.create_burndown_chart(all_tasks)
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        # Sur desktop, afficher les graphiques côte à côte
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Répartition par zone")
+            tasks_by_zone = data.count_tasks_by_zone()
+            fig = visualisation.create_task_overview_chart(tasks_by_zone)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            st.subheader("Statut des tâches")
+            fig = visualisation.create_task_status_chart(tasks_by_status)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Afficher le graphique de priorité et le burndown chart
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Répartition par priorité")
+            fig = visualisation.create_priority_chart(all_tasks)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            st.subheader("Progression dans le temps")
+            fig = visualisation.create_burndown_chart(all_tasks)
+            st.plotly_chart(fig, use_container_width=True)
     
     # Prédiction de fin des travaux
     st.subheader("Estimation de fin des travaux")

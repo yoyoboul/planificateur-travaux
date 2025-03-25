@@ -3,4 +3,5 @@ pandas>=2.0.0
 plotly>=5.15.0
 numpy>=1.24.0
 pillow>=9.5.0
-matplotlib>=3.7.0 
+matplotlib>=3.7.0
+# sqlite3 est inclus par défaut dans Python, pas besoin de l'installer 
